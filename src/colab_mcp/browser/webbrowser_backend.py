@@ -1,6 +1,6 @@
 import webbrowser
 
-from colab_mcp.browser.base import BrowserBackend
+from colab_mcp.browser.base import BrowserBackend, NotSupportedError
 
 
 class WebbrowserBackend(BrowserBackend):
@@ -17,3 +17,6 @@ class WebbrowserBackend(BrowserBackend):
 
     async def keepalive(self) -> None:
         pass  # User is responsible for keeping the tab open
+
+    def change_runtime_type_sync_check(self):
+        raise NotSupportedError("webbrowser backend cannot drive the Colab UI")
