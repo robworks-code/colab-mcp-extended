@@ -68,3 +68,21 @@ def test_poll_after_run_reads_output_in_real_interpreter():
     out = buf.getvalue()
     assert "line1" in out
     assert "done" in out
+
+
+def test_cooperative_stop_flag_works_in_real_interpreter():
+    ns = {}
+    user_code = (
+        "import time\n"
+        "for _ in range(200):\n"
+        "    if __COLAB_MCP_STOP__():\n"
+        "        print('STOPPED')\n"
+        "        break\n"
+        "    time.sleep(0.01)\n"
+    )
+    exec(compile(_gen_run_async_code(user_code, "job_stop"), "<g>", "exec"), ns, ns)
+    rec = ns["__COLAB_MCP_JOBS__"]["job_stop"]
+    rec["stop"] = True
+    rec["thread"].join(timeout=5)
+    assert rec["status"] == "done"
+    assert "STOPPED" in rec["buf"].getvalue()

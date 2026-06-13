@@ -18,6 +18,10 @@ _REGISTRY_BOOTSTRAP = r'''
 import threading, io, traceback, time, sys
 if "__COLAB_MCP_JOBS__" not in globals():
     __COLAB_MCP_JOBS__ = {}
+def __COLAB_MCP_STOP__():
+    _j = threading.current_thread().name
+    _r = __COLAB_MCP_JOBS__.get(_j)
+    return bool(_r and _r.get("stop"))
 '''
 
 
@@ -36,7 +40,6 @@ def _gen_run_async_code(code: str, job_id: str) -> str:
         + "    _old_out, _old_err = sys.stdout, sys.stderr\n"
         + "    sys.stdout = sys.stderr = buf\n"
         + "    try:\n"
-        + "        _g = {'__COLAB_MCP_STOP__': lambda: __COLAB_MCP_JOBS__[jid]['stop']}\n"
         + "        exec(compile(src, '<async_job>', 'exec'), globals(), None)\n"
         + "        rec['status'] = 'done'\n"
         + "    except Exception as e:\n"
@@ -44,7 +47,7 @@ def _gen_run_async_code(code: str, job_id: str) -> str:
         + "        rec['error'] = ''.join(traceback.format_exception(type(e), e, e.__traceback__))\n"
         + "    finally:\n"
         + "        sys.stdout, sys.stderr = _old_out, _old_err\n"
-        + "_t = threading.Thread(target=_runner, daemon=True)\n"
+        + "_t = threading.Thread(target=_runner, name=_jid, daemon=True)\n"
         + "__COLAB_MCP_JOBS__[_jid]['thread'] = _t\n"
         + "_t.start()\n"
         + "print(json.dumps({'job_id': _jid, 'status': 'running'}))\n"
