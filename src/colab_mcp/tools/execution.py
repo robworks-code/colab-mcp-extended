@@ -7,6 +7,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from fastmcp.tools.tool import Tool
+from mcp.types import ImageContent, TextContent
 
 from colab_mcp.tools._runner import run_python, wrap_output
 
@@ -22,6 +23,22 @@ def __COLAB_MCP_STOP__():
     _j = threading.current_thread().name
     _r = __COLAB_MCP_JOBS__.get(_j)
     return bool(_r and _r.get("stop"))
+'''
+
+
+def _gen_capture_plots_suffix() -> str:
+    return r'''
+import json as _json, io as _io, base64 as _b64
+try:
+    import matplotlib.pyplot as _plt
+    _imgs = []
+    for _n in _plt.get_fignums():
+        _b = _io.BytesIO()
+        _plt.figure(_n).savefig(_b, format="png", bbox_inches="tight")
+        _imgs.append(_b64.b64encode(_b.getvalue()).decode())
+    print("___COLAB_MCP_IMAGES___" + _json.dumps(_imgs))
+except Exception:
+    pass
 '''
 
 
@@ -108,7 +125,8 @@ def get_execution_tools(session_manager: SessionManager) -> list[Tool]:
     async def execute_code(
         code: str,
         session_id: str | None = None,
-    ) -> str:
+        capture_plots: bool = False,
+    ):
         """Execute Python code in a Colab session's kernel.
 
         Runs the given code in the active (or specified) session. The code is
@@ -117,19 +135,44 @@ def get_execution_tools(session_manager: SessionManager) -> list[Tool]:
         Args:
             code: Python code to execute.
             session_id: Target session ID. Uses active session if not specified.
+            capture_plots: When True, appends code that grabs any open
+                matplotlib figures as PNGs. If images are captured, returns a
+                list of content blocks (text JSON payload plus one image block
+                per figure) instead of the plain JSON string.
 
         Returns:
-            JSON with execution output, errors, and status.
+            JSON with execution output, errors, and status. When capture_plots
+            is True and figures are present, a list of MCP content blocks.
         """
         session = session_manager.resolve_session(session_id)
         if not session.is_connected():
             return json.dumps({"error": f"Session {session.session_id} is not connected"})
 
+        run_code = code
+        if capture_plots:
+            run_code = code + "\n" + _gen_capture_plots_suffix()
+
         # Proxy to Colab's execute_code tool if available
         try:
             client = session.proxy_client.client_factory()
-            result = await client.call_tool("execute_code", {"code": code})
-            return json.dumps({"output": str(result), "session_id": session.session_id})
+            result = await client.call_tool("execute_code", {"code": run_code})
+            text = str(result)
+            blocks = []
+            marker = "___COLAB_MCP_IMAGES___"
+            if capture_plots and marker in text:
+                head, _, tail = text.partition(marker)
+                text = head
+                try:
+                    imgs = json.loads(tail.strip().splitlines()[0])
+                    for b64 in imgs:
+                        blocks.append(ImageContent(type="image", data=b64,
+                                                   mimeType="image/png"))
+                except Exception:  # noqa: BLE001
+                    pass
+            payload = json.dumps({"output": text, "session_id": session.session_id})
+            if blocks:
+                return [TextContent(type="text", text=payload), *blocks]
+            return payload
         except Exception as e:
             return json.dumps({"error": str(e), "session_id": session.session_id})
 
