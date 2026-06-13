@@ -4,5 +4,74 @@ Extended version of Google's [colab-mcp](https://github.com/googlecolab/colab-mc
 
 ## Changes from upstream
 
-- `notebook_id` parameter on `open_colab_browser_connection` — pass a Google Drive file ID to open that notebook
-- `authuser` parameter — specify which Google account to use (default: 1)
+- `notebook_id` parameter on `open_colab_browser_connection` - pass a Google Drive file ID to open that notebook
+- `authuser` parameter - specify which Google account to use (default: 1)
+- Multi-session support - manage multiple Colab sessions concurrently
+- Headless/Playwright browser backend (optional, via `[headless]` extra)
+- Expanded tool set covering execution, files, Drive, secrets, inspection, and notebook cells
+
+## Tools
+
+### Connection
+
+- `open_session` - Open a new Colab browser session and connect to its kernel
+- `list_sessions` - List all active sessions and their status
+- `close_session` - Close a session and release its browser/kernel resources
+- `switch_session` - Switch the active session used by subsequent tool calls
+
+### Execution
+
+- `execute_code` - Execute Python code in the Colab kernel; supports `capture_plots` to return inline images
+- `interrupt_kernel` - Send a kernel interrupt (equivalent to Ctrl+C)
+- `restart_kernel` - Restart the Colab kernel, clearing all in-memory state
+- `run_async` - Start a long-running code execution in the background and return a job ID
+- `poll_execution` - Poll the status and partial output of a background job
+- `stop_async` - Cancel a running background job
+- `list_jobs` - List all active and recently completed background jobs
+
+### Files
+
+- `install_package` - Install a Python package in the Colab runtime via pip
+- `get_runtime_info` - Return Python version, installed packages, and environment details
+- `upload_file` - Upload a local file to the Colab VM filesystem
+- `download_file` - Download a file from the Colab VM to the local machine
+- `list_vm_files` - List files and directories on the Colab VM
+- `read_vm_file` - Read the contents of a file on the Colab VM
+- `write_vm_file` - Write or overwrite a file on the Colab VM
+- `delete_vm_file` - Delete a file or directory from the Colab VM
+
+### Runtime
+
+- `get_resource_usage` - Return current CPU, RAM, GPU, and disk usage for the Colab runtime
+
+### Drive
+
+- `mount_drive` - Mount Google Drive in the Colab runtime at `/content/drive`
+- `unmount_drive` - Unmount Google Drive from the Colab runtime
+- `list_drive_files` - List files in a Google Drive folder (requires Drive mounted)
+
+### Secrets
+
+- `inject_secret_to_env` - Read a Colab secret and inject it as an environment variable
+- `get_secret` - Return the value of a Colab secret
+
+### Inspection
+
+- `list_variables` - List all variables currently defined in the kernel namespace
+- `inspect_variable` - Return the type, shape, and value summary of a named variable
+
+### Notebook cells
+
+- `list_cells` - List all cells in the open notebook with their types and truncated content
+- `get_cell` - Return the full source of a specific notebook cell
+- `add_cell` - Insert a new code or markdown cell at a given position
+- `edit_cell` - Replace the source of an existing notebook cell
+- `delete_cell` - Delete a notebook cell by index
+
+### Notebook lifecycle (Playwright/headless only)
+
+- `change_runtime_type` - Change the Colab runtime hardware accelerator (CPU/GPU/TPU)
+- `connect_runtime` - Connect to the Colab runtime if disconnected
+- `factory_reset_runtime` - Factory-reset the Colab runtime, deleting all VM files
+- `save_notebook` - Save the current notebook to Google Drive
+- `complete_drive_mount_consent` - Click through the Google Drive mount authorization dialog
