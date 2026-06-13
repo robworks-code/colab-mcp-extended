@@ -1,4 +1,9 @@
 import inspect
+
+import pytest
+
+pytest.importorskip("playwright")
+
 from colab_mcp.browser.playwright_backend import PlaywrightBackend
 from colab_mcp.browser.base import BrowserBackend
 

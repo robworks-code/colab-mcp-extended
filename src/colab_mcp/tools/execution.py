@@ -51,7 +51,7 @@ def _gen_run_async_code(code: str, job_id: str) -> str:
         + f"_jid = {job_id!r}\n"
         + "_buf = io.StringIO()\n"
         + "__COLAB_MCP_JOBS__[_jid] = {'status': 'running', 'buf': _buf,\n"
-        + "    'start': time.time(), 'stop': False, 'result': None, 'error': None}\n"
+        + "    'start': time.time(), 'stop': False, 'error': None}\n"
         + "def _runner(jid=_jid, src=_uc, buf=_buf):\n"
         + "    rec = __COLAB_MCP_JOBS__[jid]\n"
         + "    _old_out, _old_err = sys.stdout, sys.stderr\n"
@@ -85,7 +85,7 @@ def _gen_poll_code(job_id: str, since_cursor: int) -> str:
         "    _new = _full[_cur:]\n"
         "    print(json.dumps({'job_id': _jid, 'status': _rec['status'],\n"
         "        'new_output': _new, 'cursor': len(_full),\n"
-        "        'result': _rec['result'], 'error': _rec['error']}))\n"
+        "        'error': _rec['error']}))\n"
     )
     return wrap_output(body)
 
@@ -253,7 +253,7 @@ def get_execution_tools(session_manager: SessionManager) -> list[Tool]:
             session_id: Target session. Uses active session if not specified.
 
         Returns:
-            JSON with status, new_output, cursor, result, error.
+            JSON with status, new_output, cursor, error.
         """
         session = session_manager.resolve_session(session_id)
         return json.dumps(await run_python(session, _gen_poll_code(job_id, since_cursor)))
