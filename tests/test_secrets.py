@@ -1,4 +1,12 @@
 from colab_mcp.tools.secrets import _gen_inject_code, _gen_get_secret_code
+from colab_mcp.tools.secrets import _validate_env_var
+
+
+def test_validate_env_var_blocks_loaders():
+    assert _validate_env_var("LD_PRELOAD")
+    assert _validate_env_var("PATH")
+    assert _validate_env_var("")
+    assert _validate_env_var("HF_TOKEN") is None
 
 
 def test_inject_code_sets_env_without_printing_value():

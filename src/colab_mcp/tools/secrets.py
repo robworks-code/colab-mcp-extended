@@ -12,6 +12,21 @@ if TYPE_CHECKING:
     from colab_mcp.session_manager import SessionManager
 
 
+_DANGEROUS_ENV = {
+    "LD_PRELOAD", "LD_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES",
+    "DYLD_LIBRARY_PATH", "PYTHONPATH", "PATH", "BASH_ENV",
+}
+
+
+def _validate_env_var(env_var: str) -> str | None:
+    """Return an error message if env_var is unsafe to set, else None."""
+    if not env_var or not env_var.strip():
+        return "env_var must be non-empty"
+    if env_var in _DANGEROUS_ENV:
+        return f"refusing to set sensitive loader variable {env_var}"
+    return None
+
+
 def _gen_inject_code(secret_name: str, env_var: str) -> str:
     body = (
         "import json, os\n"
@@ -40,10 +55,13 @@ def _gen_get_secret_code(secret_name: str) -> str:
 def get_secret_tools(session_manager: SessionManager) -> list[Tool]:
     async def inject_secret_to_env(secret_name: str, env_var: str,
                                    session_id: str | None = None) -> str:
-        """Copy a Colab secret into an environment variable WITHOUT revealing it.
+        """Copy a Colab secret into an environment variable in the kernel.
 
-        The secret value is never returned to the agent - only success/failure.
-        Ideal for HF_TOKEN and similar credentials.
+        This call does not return the secret value. NOTE: the value is still
+        reachable - any subsequent execute_code/run_async can read
+        os.environ[env_var]. This reduces incidental exposure (the value isn't
+        echoed back here) but is not a hard secret boundary. Refuses to set
+        loader-sensitive variables (PATH, LD_PRELOAD, etc.).
 
         Args:
             secret_name: Name of the Colab secret (Secrets panel key).
@@ -51,16 +69,20 @@ def get_secret_tools(session_manager: SessionManager) -> list[Tool]:
             session_id: Target session. Uses active session if not specified.
 
         Returns:
-            JSON with {set: bool, env_var}.
+            JSON with {set: bool, env_var} or {set: False, error}.
         """
+        err = _validate_env_var(env_var)
+        if err:
+            return json.dumps({"set": False, "error": err})
         session = session_manager.resolve_session(session_id)
         return json.dumps(await run_python(session, _gen_inject_code(secret_name, env_var)))
 
     async def get_secret(secret_name: str, session_id: str | None = None) -> str:
         """Read a Colab secret VALUE (sensitive - prefer inject_secret_to_env).
 
-        Returns the plaintext secret to the caller. Only use when the value is
-        genuinely needed in the conversation.
+        WARNING: the value is printed as kernel cell output to return it, so it
+        passes through the notebook output channel and may be persisted by Colab
+        autosave. Only use when the plaintext value is genuinely needed.
 
         Args:
             secret_name: Name of the Colab secret.
