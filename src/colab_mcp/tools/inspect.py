@@ -59,7 +59,7 @@ def get_inspect_tools(session_manager: SessionManager) -> list[Tool]:
     async def list_variables(session_id: str | None = None) -> str:
         """List user-defined kernel variables with type + shape/dtype.
 
-        Filters out dunders, callables and modules. Great for seeing loaded
+        Filters out underscore-prefixed names, callables and modules. Great for seeing loaded
         tensors/arrays/DataFrames during ML work.
 
         Args:

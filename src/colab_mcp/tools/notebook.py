@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
+from fastmcp.dependencies import CurrentContext
+from fastmcp.server.context import Context
 from fastmcp.tools.tool import Tool
 
 from colab_mcp.browser.base import NotSupportedError
@@ -166,7 +168,8 @@ def get_notebook_tools(session_manager: SessionManager) -> list[Tool]:
         except NotSupportedError as e:
             return json.dumps({"error": str(e)})
 
-    async def connect_runtime(session_id: str | None = None) -> str:
+    async def connect_runtime(session_id: str | None = None,
+                              ctx: Context = CurrentContext()) -> str:
         """Click Connect to attach a compute runtime. Requires Playwright session.
 
         Args:
@@ -179,6 +182,10 @@ def get_notebook_tools(session_manager: SessionManager) -> list[Tool]:
         if not session.is_connected():
             return json.dumps({"error": f"Session {session.session_id} is not connected"})
         try:
+            await ctx.report_progress(
+                progress=0, total=1,
+                message="Connecting runtime (may take up to 2 minutes)...",
+            )
             return json.dumps(await session.backend.connect_runtime())
         except NotSupportedError as e:
             return json.dumps({"error": str(e)})
@@ -200,7 +207,8 @@ def get_notebook_tools(session_manager: SessionManager) -> list[Tool]:
         except NotSupportedError as e:
             return json.dumps({"error": str(e)})
 
-    async def save_notebook(session_id: str | None = None) -> str:
+    async def save_notebook(session_id: str | None = None,
+                            ctx: Context = CurrentContext()) -> str:
         """Save the notebook (Ctrl/Cmd+S). Requires Playwright session.
 
         Args:
@@ -213,11 +221,15 @@ def get_notebook_tools(session_manager: SessionManager) -> list[Tool]:
         if not session.is_connected():
             return json.dumps({"error": f"Session {session.session_id} is not connected"})
         try:
+            await ctx.report_progress(
+                progress=0, total=1, message="Saving notebook...",
+            )
             return json.dumps(await session.backend.save_notebook())
         except NotSupportedError as e:
             return json.dumps({"error": str(e)})
 
-    async def complete_drive_mount_consent(session_id: str | None = None) -> str:
+    async def complete_drive_mount_consent(session_id: str | None = None,
+                                           ctx: Context = CurrentContext()) -> str:
         """Click through the Drive mount consent popup. Requires Playwright session.
 
         Use after mount_drive returns needs_consent=True.
@@ -232,6 +244,9 @@ def get_notebook_tools(session_manager: SessionManager) -> list[Tool]:
         if not session.is_connected():
             return json.dumps({"error": f"Session {session.session_id} is not connected"})
         try:
+            await ctx.report_progress(
+                progress=0, total=1, message="Completing Drive mount consent...",
+            )
             return json.dumps(await session.backend.complete_drive_mount_consent())
         except NotSupportedError as e:
             return json.dumps({"error": str(e)})

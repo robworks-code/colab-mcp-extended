@@ -87,12 +87,15 @@ class PlaywrightBackend(BrowserBackend):
 
     async def change_runtime_type(self, accelerator: str) -> dict:
         page = self._page
-        await page.click(sel.RUNTIME_MENU_BUTTON)
-        await page.click(sel.CHANGE_RUNTIME_TYPE_ITEM)
-        await page.click(sel.ACCELERATOR_DROPDOWN)
-        await page.click(f'text="{accelerator}"')
-        await page.click(sel.SAVE_BUTTON)
-        return {"changed": True, "accelerator": accelerator}
+        try:
+            await page.click(sel.RUNTIME_MENU_BUTTON)
+            await page.click(sel.CHANGE_RUNTIME_TYPE_ITEM)
+            await page.click(sel.ACCELERATOR_DROPDOWN)
+            await page.click(f'text="{accelerator}"')
+            await page.click(sel.SAVE_BUTTON)
+            return {"changed": True, "accelerator": accelerator}
+        except Exception as e:  # noqa: BLE001
+            return {"changed": False, "error": str(e)}
 
     async def connect_runtime(self) -> dict:
         page = self._page
@@ -105,10 +108,13 @@ class PlaywrightBackend(BrowserBackend):
 
     async def factory_reset_runtime(self) -> dict:
         page = self._page
-        await page.click(sel.RUNTIME_MENU_BUTTON)
-        await page.click(sel.DISCONNECT_DELETE_ITEM)
-        await page.click(sel.CONFIRM_YES_BUTTON)
-        return {"reset": True}
+        try:
+            await page.click(sel.RUNTIME_MENU_BUTTON)
+            await page.click(sel.DISCONNECT_DELETE_ITEM)
+            await page.click(sel.CONFIRM_YES_BUTTON)
+            return {"reset": True}
+        except Exception as e:  # noqa: BLE001
+            return {"reset": False, "error": str(e)}
 
     async def save_notebook(self) -> dict:
         page = self._page

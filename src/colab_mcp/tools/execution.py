@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from fastmcp.tools.tool import Tool
 from mcp.types import ImageContent, TextContent
 
-from colab_mcp.tools._runner import run_python, wrap_output
+from colab_mcp.tools._runner import extract_text, run_python, wrap_output
 
 if TYPE_CHECKING:
     from colab_mcp.session_manager import SessionManager
@@ -156,7 +156,7 @@ def get_execution_tools(session_manager: SessionManager) -> list[Tool]:
         try:
             client = session.proxy_client.client_factory()
             result = await client.call_tool("execute_code", {"code": run_code})
-            text = str(result)
+            text = extract_text(result)
             blocks = []
             marker = "___COLAB_MCP_IMAGES___"
             if capture_plots and marker in text:
@@ -249,7 +249,7 @@ def get_execution_tools(session_manager: SessionManager) -> list[Tool]:
 
         Args:
             job_id: Job id from run_async.
-            since_cursor: Byte offset returned by the previous poll. Start at 0.
+            since_cursor: Character offset returned by the previous poll. Start at 0.
             session_id: Target session. Uses active session if not specified.
 
         Returns:
