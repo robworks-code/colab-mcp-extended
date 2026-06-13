@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from fastmcp.tools.tool import Tool
 from mcp.types import TextContent
 
+from colab_mcp.tools._runner import wrap_output, run_python
+
 if TYPE_CHECKING:
     from colab_mcp.session_manager import SessionManager
 
@@ -32,6 +34,72 @@ def _extract_delimited(raw: str) -> str:
         return raw[start + len(_OUTPUT_START):end].strip()
     # Fallback: return stripped raw text
     return raw.strip()
+
+
+def _gen_list_vm_code(path: str) -> str:
+    body = (
+        "import json, os\n"
+        f"p = {path!r}\n"
+        "if not os.path.exists(p):\n"
+        "    print(json.dumps({'error': 'path not found', 'path': p}))\n"
+        "else:\n"
+        "    entries = []\n"
+        "    for name in sorted(os.listdir(p)):\n"
+        "        fp = os.path.join(p, name)\n"
+        "        entries.append({'name': name, 'is_dir': os.path.isdir(fp),\n"
+        "                        'size': os.path.getsize(fp) if os.path.isfile(fp) else None})\n"
+        "    print(json.dumps({'path': p, 'entries': entries}))\n"
+    )
+    return wrap_output(body)
+
+
+def _gen_read_vm_code(path: str, max_bytes: int) -> str:
+    body = (
+        "import json\n"
+        f"p = {path!r}\n"
+        f"n = {int(max_bytes)}\n"
+        "try:\n"
+        "    with open(p, 'r', errors='replace') as f:\n"
+        "        data = f.read(n + 1)\n"
+        "    truncated = len(data) > n\n"
+        "    print(json.dumps({'path': p, 'content': data[:n], 'truncated': truncated}))\n"
+        "except Exception as e:\n"
+        "    print(json.dumps({'error': str(e), 'path': p}))\n"
+    )
+    return wrap_output(body)
+
+
+def _gen_write_vm_code(path: str, content: str) -> str:
+    # Embed content as a JSON literal so quotes/newlines survive intact.
+    encoded = json.dumps(content)
+    body = (
+        "import json\n"
+        f"p = {path!r}\n"
+        f"content = json.loads({encoded!r})\n"
+        "try:\n"
+        "    with open(p, 'w') as f:\n"
+        "        f.write(content)\n"
+        "    print(json.dumps({'written': True, 'path': p, 'bytes': len(content)}))\n"
+        "except Exception as e:\n"
+        "    print(json.dumps({'written': False, 'error': str(e)}))\n"
+    )
+    return wrap_output(body)
+
+
+def _gen_delete_vm_code(path: str) -> str:
+    body = (
+        "import json, os, shutil\n"
+        f"p = {path!r}\n"
+        "try:\n"
+        "    if os.path.isdir(p):\n"
+        "        shutil.rmtree(p)\n"
+        "    else:\n"
+        "        os.remove(p)\n"
+        "    print(json.dumps({'deleted': True, 'path': p}))\n"
+        "except Exception as e:\n"
+        "    print(json.dumps({'deleted': False, 'error': str(e)}))\n"
+    )
+    return wrap_output(body)
 
 
 def get_file_tools(session_manager: SessionManager) -> list[Tool]:
@@ -216,6 +284,62 @@ print("{_OUTPUT_END}")
         except Exception as e:
             return json.dumps({"error": str(e), "session_id": session.session_id})
 
+    async def list_vm_files(path: str = ".", session_id: str | None = None) -> str:
+        """List files in a VM directory.
+
+        Args:
+            path: Directory path. Default current dir.
+            session_id: Target session. Uses active session if not specified.
+
+        Returns:
+            JSON with entries.
+        """
+        session = session_manager.resolve_session(session_id)
+        return json.dumps(await run_python(session, _gen_list_vm_code(path)))
+
+    async def read_vm_file(path: str, max_bytes: int = 100_000,
+                           session_id: str | None = None) -> str:
+        """Read a text file from the VM (truncated to max_bytes).
+
+        Args:
+            path: File path.
+            max_bytes: Max bytes to return. Default 100000.
+            session_id: Target session. Uses active session if not specified.
+
+        Returns:
+            JSON with content and truncated flag.
+        """
+        session = session_manager.resolve_session(session_id)
+        return json.dumps(await run_python(session, _gen_read_vm_code(path, max_bytes)))
+
+    async def write_vm_file(path: str, content: str,
+                            session_id: str | None = None) -> str:
+        """Write text to a VM file (overwrites).
+
+        Args:
+            path: File path.
+            content: Text content.
+            session_id: Target session. Uses active session if not specified.
+
+        Returns:
+            JSON with written status.
+        """
+        session = session_manager.resolve_session(session_id)
+        return json.dumps(await run_python(session, _gen_write_vm_code(path, content)))
+
+    async def delete_vm_file(path: str, session_id: str | None = None) -> str:
+        """Delete a VM file or directory.
+
+        Args:
+            path: File or directory path.
+            session_id: Target session. Uses active session if not specified.
+
+        Returns:
+            JSON with deleted status.
+        """
+        session = session_manager.resolve_session(session_id)
+        return json.dumps(await run_python(session, _gen_delete_vm_code(path)))
+
     return [
         Tool.from_function(
             fn=install_package,
@@ -239,4 +363,12 @@ print("{_OUTPUT_END}")
             name="download_file",
             description="Download a file from the Colab VM to the local filesystem.",
         ),
+        Tool.from_function(fn=list_vm_files, name="list_vm_files",
+                           description="List files in a VM directory."),
+        Tool.from_function(fn=read_vm_file, name="read_vm_file",
+                           description="Read a text file from the VM (truncated)."),
+        Tool.from_function(fn=write_vm_file, name="write_vm_file",
+                           description="Write text to a VM file (overwrites)."),
+        Tool.from_function(fn=delete_vm_file, name="delete_vm_file",
+                           description="Delete a VM file or directory."),
     ]

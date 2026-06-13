@@ -8,6 +8,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright, BrowserContext, Page
 
 from colab_mcp.browser.base import BrowserBackend
+from colab_mcp.browser import colab_selectors as sel
 
 DEFAULT_PROFILE_DIR = Path.home() / ".colab-mcp" / "browser-profile"
 
@@ -83,3 +84,51 @@ class PlaywrightBackend(BrowserBackend):
                 await self._page.evaluate("void(0)")
             except Exception:
                 logging.warning("PlaywrightBackend: keepalive failed")
+
+    async def change_runtime_type(self, accelerator: str) -> dict:
+        page = self._page
+        try:
+            await page.click(sel.RUNTIME_MENU_BUTTON)
+            await page.click(sel.CHANGE_RUNTIME_TYPE_ITEM)
+            await page.click(sel.ACCELERATOR_DROPDOWN)
+            await page.click(f'text="{accelerator}"')
+            await page.click(sel.SAVE_BUTTON)
+            return {"changed": True, "accelerator": accelerator}
+        except Exception as e:  # noqa: BLE001
+            return {"changed": False, "error": str(e)}
+
+    async def connect_runtime(self) -> dict:
+        page = self._page
+        await page.click(sel.CONNECT_BUTTON)
+        try:
+            await page.wait_for_selector(sel.CONNECTED_BADGE, timeout=120_000)
+            return {"connected": True}
+        except Exception as e:  # noqa: BLE001
+            return {"connected": False, "error": str(e)}
+
+    async def factory_reset_runtime(self) -> dict:
+        page = self._page
+        try:
+            await page.click(sel.RUNTIME_MENU_BUTTON)
+            await page.click(sel.DISCONNECT_DELETE_ITEM)
+            await page.click(sel.CONFIRM_YES_BUTTON)
+            return {"reset": True}
+        except Exception as e:  # noqa: BLE001
+            return {"reset": False, "error": str(e)}
+
+    async def save_notebook(self) -> dict:
+        page = self._page
+        await page.keyboard.press("Control+s")
+        try:
+            await page.wait_for_selector(sel.SAVING_DONE_INDICATOR, timeout=30_000)
+            return {"saved": True}
+        except Exception as e:  # noqa: BLE001
+            return {"saved": False, "error": str(e)}
+
+    async def complete_drive_mount_consent(self) -> dict:
+        page = self._page
+        try:
+            await page.click(sel.DRIVE_CONSENT_ALLOW, timeout=30_000)
+            return {"consented": True}
+        except Exception as e:  # noqa: BLE001
+            return {"consented": False, "error": str(e)}

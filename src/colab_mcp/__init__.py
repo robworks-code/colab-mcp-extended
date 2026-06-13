@@ -29,6 +29,10 @@ from colab_mcp.tools.connection import get_connection_tools
 from colab_mcp.tools.execution import get_execution_tools
 from colab_mcp.tools.files import get_file_tools
 from colab_mcp.tools.notebook import get_notebook_tools
+from colab_mcp.tools.runtime import get_runtime_tools
+from colab_mcp.tools.drive import get_drive_tools
+from colab_mcp.tools.secrets import get_secret_tools
+from colab_mcp.tools.inspect import get_inspect_tools
 
 
 mcp = FastMCP(name="ColabMCP")
@@ -138,6 +142,10 @@ async def main_async():
         + get_execution_tools(session_manager)
         + get_notebook_tools(session_manager)
         + get_file_tools(session_manager)
+        + get_runtime_tools(session_manager)
+        + get_drive_tools(session_manager)
+        + get_secret_tools(session_manager)
+        + get_inspect_tools(session_manager)
     )
     mcp.add_middleware(SessionProxyMiddleware(session_manager, mcp))
     mcp.add_middleware(ToolInjectionMiddleware(tools=all_tools))
