@@ -6,6 +6,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-14
+
+### Added
+
+- Claude Code plugin support. The repo now doubles as the `colab` plugin: a
+  `.claude-plugin/plugin.json` manifest, a `.mcp.json` registering the bundled `colab`
+  MCP server, and a `uv`-based launcher (`hooks/scripts/launch-mcp.sh`) that resolves the
+  project virtualenv from `pyproject.toml` on first launch.
+- `/colab:setup` command — guided first-run setup (uv check, optional Playwright extra,
+  Google sign-in, verification).
+- `/colab:help` command — grouped overview of every tool the server exposes.
+
 ### Documentation
 
 - Document the v1.2.0 round-trip (`save_and_push_merged`, `ensure_repo_readme`) and

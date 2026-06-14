@@ -13,6 +13,23 @@ Extended version of Google's [colab-mcp](https://github.com/googlecolab/colab-mc
 
 ## Installation
 
+### As a Claude Code plugin (recommended)
+
+This repo doubles as the `colab` Claude Code plugin, published via the
+[robworks-claude-code-plugins](https://github.com/ringo380/robworks-claude-code-plugins)
+marketplace:
+
+```
+/plugin marketplace add ringo380/robworks-claude-code-plugins
+/plugin install colab@robworks-claude-code-plugins
+```
+
+The bundled MCP server launches via [`uv`](https://docs.astral.sh/uv/) (required on PATH);
+the project virtualenv is created from `pyproject.toml` on first launch. Run `/colab:setup`
+for guided first-run setup and `/colab:help` for the full tool list.
+
+### Standalone (pip)
+
 ```bash
 git clone https://github.com/robworks-code/colab-mcp-extended.git
 cd colab-mcp-extended
