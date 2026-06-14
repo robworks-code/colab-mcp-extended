@@ -6,6 +6,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-14
+
+### Added
+
+- Round-trip (Colab-side): `save_and_push_merged` (reliable `save_pretrained_merged`
+  with safetensors verification, README seeding, and stale-file clearing via
+  `delete_patterns`) and `ensure_repo_readme`.
+- Local MLX (host-side) tools: `normalize_tokenizer_config` (fixes Colab's
+  `TokenizersBackend` tokenizer_class), `download_from_hf`, and `convert_to_mlx`
+  (clears the target dir, auto-normalizes a local source, surfaces a `sentencepiece`
+  hint).
+- `--mlx-python` CLI arg / `COLAB_MCP_MLX_PYTHON` env var selects the interpreter the
+  local MLX tools invoke (defaults to the server's own interpreter).
+
 ## [1.1.1] - 2026-06-13
 
 ### Security
@@ -56,7 +70,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Multi-session architecture with headless browser support.
 - Initial fork of colab-mcp with `notebook_id` and `authuser` support.
 
-[Unreleased]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/robworks-code/colab-mcp-extended/releases/tag/v1.1.0
 [1.0.0]: https://github.com/robworks-code/colab-mcp-extended/commits/main
