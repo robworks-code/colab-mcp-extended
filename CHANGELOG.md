@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- Bump `fastmcp` 2.14.5 -> 3.2.0, resolving three advisories in unused fastmcp
+  features (OpenAPI provider SSRF/path traversal, OAuth proxy confused-deputy,
+  Gemini CLI command injection). None were reachable in this codebase.
+
+### Changed
+
+- Use the non-deprecated `fastmcp.server.providers.proxy` import path for
+  `FastMCPProxy`.
+
+### Added
+
+- `Installation` section in the README with clone and dev-install instructions.
+- `.gitignore` covering Python build artifacts, virtual environments, and macOS files.
+
 ## [1.1.0] - 2026-06-13
 
 ### Added
@@ -36,5 +54,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Multi-session architecture with headless browser support.
 - Initial fork of colab-mcp with `notebook_id` and `authuser` support.
 
-[1.1.0]: https://github.com/ringo380/colab-mcp-extended/releases/tag/v1.1.0
-[1.0.0]: https://github.com/ringo380/colab-mcp-extended/commits/main
+[Unreleased]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/robworks-code/colab-mcp-extended/releases/tag/v1.1.0
+[1.0.0]: https://github.com/robworks-code/colab-mcp-extended/commits/main
