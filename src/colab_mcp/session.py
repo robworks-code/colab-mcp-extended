@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP, Client
 from fastmcp.client.transports import ClientTransport
-from fastmcp.server.proxy import FastMCPProxy
+from fastmcp.server.providers.proxy import FastMCPProxy
 from mcp.client.session import ClientSession
 
 from colab_mcp.websocket_server import ColabWebSocketServer
