@@ -107,3 +107,38 @@ def test_download_parses_last_json_line(monkeypatch):
 
 def test_parse_last_json_falls_back_to_raw():
     assert lm._parse_last_json("just noise\nmore noise") == {"raw": "just noise\nmore noise"}
+
+
+def test_convert_restores_backup_on_failure(tmp_path, monkeypatch):
+    def fake_run(argv, capture_output, text):
+        # simulate convert creating a partial output dir, then failing
+        os.makedirs(argv[argv.index("--mlx-path") + 1], exist_ok=True)
+        return _Proc(returncode=1, stderr="boom")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    mlx = tmp_path / "out"
+    mlx.mkdir()
+    (mlx / "prior").write_text("keep")
+
+    fn = _tool(lm.get_local_mlx_tools("/PY"), "convert_to_mlx").fn
+    out = json.loads(asyncio.run(fn(source="org/repo", mlx_path=str(mlx))))
+
+    assert "error" in out
+    # prior output restored from backup, partial output discarded
+    assert (mlx / "prior").read_text() == "keep"
+    assert not (tmp_path / "out.bak").exists()
+
+
+def test_convert_cleans_partial_output_when_no_backup(tmp_path, monkeypatch):
+    def fake_run(argv, capture_output, text):
+        os.makedirs(argv[argv.index("--mlx-path") + 1], exist_ok=True)
+        return _Proc(returncode=1, stderr="boom")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    mlx = tmp_path / "fresh"  # does NOT pre-exist -> no backup
+
+    fn = _tool(lm.get_local_mlx_tools("/PY"), "convert_to_mlx").fn
+    out = json.loads(asyncio.run(fn(source="org/repo", mlx_path=str(mlx))))
+
+    assert "error" in out
+    assert not mlx.exists()  # partial output cleaned up

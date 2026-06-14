@@ -123,6 +123,7 @@ def get_local_mlx_tools(mlx_python: str) -> list[Tool]:
         Returns:
             JSON {mlx_path, status, normalized?} or {error, argv, hint?, normalized?}.
         """
+        mlx_path = os.path.normpath(mlx_path)
         norm = None
         if normalize and os.path.isdir(source):
             norm = _normalize_tokenizer_config(source)
@@ -139,9 +140,9 @@ def get_local_mlx_tools(mlx_python: str) -> list[Tool]:
         proc = await asyncio.to_thread(subprocess.run, argv,
                                        capture_output=True, text=True)
         if proc.returncode != 0:
+            if os.path.isdir(mlx_path):
+                shutil.rmtree(mlx_path)  # drop the partial/corrupt output
             if backup is not None:
-                if os.path.isdir(mlx_path):
-                    shutil.rmtree(mlx_path)
                 os.rename(backup, mlx_path)  # restore the prior output
             err: dict[str, Any] = {
                 "error": proc.stderr.strip() or "convert failed", "argv": argv,
