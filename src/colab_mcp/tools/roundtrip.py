@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 from fastmcp.tools.tool import Tool
@@ -13,6 +14,15 @@ if TYPE_CHECKING:
     from colab_mcp.session_manager import SessionManager
 
 _DEFAULT_README = "# Merged model\n\nUploaded by colab-mcp-extended.\n"
+
+_IDENT_RE = re.compile(r"^[A-Za-z_]\w*$")
+
+
+def _validate_var_name(name: str) -> str | None:
+    """Return an error message if name is not a bare Python identifier, else None."""
+    if not _IDENT_RE.match(name or ""):
+        return f"invalid kernel variable name: {name!r}"
+    return None
 
 
 def _gen_save_push_code(model_var: str, tokenizer_var: str, repo_id: str,
@@ -29,7 +39,8 @@ def _gen_save_push_code(model_var: str, tokenizer_var: str, repo_id: str,
         "    else:\n"
         "        _rp = os.path.join(_tmp, 'README.md')\n"
         "        if not os.path.exists(_rp):\n"
-        f"            open(_rp, 'w').write({_DEFAULT_README!r})\n"
+        "            with open(_rp, 'w') as _f:\n"
+        f"                _f.write({_DEFAULT_README!r})\n"
         "        _api = HfApi(token=get_token())\n"
         f"        _api.create_repo({repo_id!r}, private=True, exist_ok=True)\n"
         f"        _dp = ['*'] if {bool(clear_repo)!r} else None\n"
@@ -46,17 +57,16 @@ def _gen_ensure_readme_code(repo_id: str, content: str | None) -> str:
     text = content if content is not None else _DEFAULT_README
     body = (
         "import io, json\n"
-        "from huggingface_hub import HfApi, get_token, hf_hub_download\n"
-        "_api = HfApi(token=get_token())\n"
-        f"_api.create_repo({repo_id!r}, private=True, exist_ok=True)\n"
+        "from huggingface_hub import HfApi, get_token\n"
         "try:\n"
-        f"    hf_hub_download({repo_id!r}, 'README.md')\n"
-        "    _existed = True\n"
-        "except Exception:\n"
-        "    _existed = False\n"
-        "if not _existed:\n"
-        f"    _api.upload_file(path_or_fileobj=io.BytesIO({text!r}.encode()), path_in_repo='README.md', repo_id={repo_id!r})\n"
-        f"print(json.dumps({{'repo_id': {repo_id!r}, 'readme_existed': _existed}}))\n"
+        "    _api = HfApi(token=get_token())\n"
+        f"    _api.create_repo({repo_id!r}, private=True, exist_ok=True)\n"
+        f"    _existed = _api.file_exists({repo_id!r}, 'README.md')\n"
+        "    if not _existed:\n"
+        f"        _api.upload_file(path_or_fileobj=io.BytesIO({text!r}.encode()), path_in_repo='README.md', repo_id={repo_id!r})\n"
+        f"    print(json.dumps({{'repo_id': {repo_id!r}, 'readme_existed': _existed}}))\n"
+        "except Exception as e:\n"
+        "    print(json.dumps({'error': str(e)}))\n"
     )
     return wrap_output(body)
 
@@ -86,6 +96,9 @@ def get_roundtrip_tools(session_manager: SessionManager) -> list[Tool]:
         Returns:
             JSON {repo_id, url, files[]} or {error}.
         """
+        err = _validate_var_name(model_var) or _validate_var_name(tokenizer_var)
+        if err:
+            return json.dumps({"error": err})
         session = session_manager.resolve_session(session_id)
         code = _gen_save_push_code(model_var, tokenizer_var, repo_id, save_method, clear_repo)
         return json.dumps(await run_python(session, code))

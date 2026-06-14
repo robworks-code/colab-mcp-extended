@@ -1,5 +1,9 @@
 # tests/test_roundtrip.py
-from colab_mcp.tools.roundtrip import _gen_save_push_code, _gen_ensure_readme_code
+import asyncio
+import json
+
+from colab_mcp.session_manager import SessionManager
+from colab_mcp.tools.roundtrip import _gen_save_push_code, _gen_ensure_readme_code, get_roundtrip_tools
 
 
 def test_save_push_code_is_valid_and_uses_safe_patterns():
@@ -40,3 +44,32 @@ def test_ensure_readme_custom_content_is_embedded():
     code = _gen_ensure_readme_code("u/r", "# Custom\n")
     compile(code, "<gen>", "exec")
     assert "# Custom" in code
+
+
+def _tool(group, name):
+    return next(t for t in group if t.name == name)
+
+
+def test_save_push_code_includes_var_names():
+    code = _gen_save_push_code("mymodel", "mytok", "u/r", "merged_16bit", True)
+    assert "mymodel.save_pretrained_merged" in code
+    assert "mytok," in code
+
+
+def test_save_push_no_safetensors_branch_present():
+    code = _gen_save_push_code("m", "t", "u/r", "merged_16bit", True)
+    assert "no .safetensors produced" in code
+
+
+def test_ensure_readme_uses_file_exists():
+    code = _gen_ensure_readme_code("u/r", None)
+    compile(code, "<gen>", "exec")
+    assert "file_exists" in code
+    assert "hf_hub_download" not in code
+
+
+def test_save_and_push_rejects_bad_var_name():
+    sm = SessionManager(default_browser_profile=None)
+    fn = _tool(get_roundtrip_tools(sm), "save_and_push_merged").fn
+    out = json.loads(asyncio.run(fn(model_var="x; import os", tokenizer_var="t", repo_id="u/r")))
+    assert "error" in out and "invalid kernel variable name" in out["error"]
