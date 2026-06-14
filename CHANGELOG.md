@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- Document the v1.2.0 round-trip (`save_and_push_merged`, `ensure_repo_readme`) and
+  host-side MLX (`normalize_tokenizer_config`, `download_from_hf`, `convert_to_mlx`)
+  tools in the README.
+
 ## [1.2.0] - 2026-06-14
 
 ### Added

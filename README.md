@@ -9,6 +9,7 @@ Extended version of Google's [colab-mcp](https://github.com/googlecolab/colab-mc
 - Multi-session support - manage multiple Colab sessions concurrently
 - Headless/Playwright browser backend (optional, via `[headless]` extra)
 - Expanded tool set covering execution, files, Drive, secrets, inspection, and notebook cells
+- Fine-tune round-trip helpers (Colab-side merge/push) and host-side MLX conversion tools
 
 ## Installation
 
@@ -83,3 +84,20 @@ pip install -e .            # or: pip install -e '.[headless]' for Playwright su
 - `factory_reset_runtime` - Factory-reset the Colab runtime, deleting all VM files
 - `save_notebook` - Save the current notebook to Google Drive
 - `complete_drive_mount_consent` - Click through the Google Drive mount authorization dialog
+
+### Round-trip (Colab-side)
+
+Helpers for the fine-tune round-trip, run inside the Colab kernel:
+
+- `save_and_push_merged` - Merge an Unsloth/PEFT model and push it to a private HF repo (verifies safetensors, clears stale files)
+- `ensure_repo_readme` - Ensure an HF repo has a `README.md` (prevents `mlx_lm.convert` 404)
+
+### Local MLX (host-side)
+
+These run on the machine hosting the MCP server, not in a Colab session. They use
+the interpreter selected by `--mlx-python` / `COLAB_MCP_MLX_PYTHON` (defaults to the
+server's own interpreter):
+
+- `normalize_tokenizer_config` - Normalize a local model's `tokenizer_config.json` for MLX/transformers load
+- `download_from_hf` - Download an HF repo to a local directory via the configured interpreter
+- `convert_to_mlx` - Convert an HF model (local dir or repo id) to MLX format locally
