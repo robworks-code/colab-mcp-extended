@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import datetime
 import logging
+import os
 import tempfile
 import sys
 
@@ -33,6 +34,8 @@ from colab_mcp.tools.runtime import get_runtime_tools
 from colab_mcp.tools.drive import get_drive_tools
 from colab_mcp.tools.secrets import get_secret_tools
 from colab_mcp.tools.inspect import get_inspect_tools
+from colab_mcp.tools.roundtrip import get_roundtrip_tools
+from colab_mcp.tools.local_mlx import get_local_mlx_tools
 
 
 mcp = FastMCP(name="ColabMCP")
@@ -125,6 +128,14 @@ def parse_args(v):
         action="store",
         default=None,
     )
+    parser.add_argument(
+        "--mlx-python",
+        help="Python interpreter (with mlx_lm/huggingface_hub installed) used by the "
+             "local MLX tools. Defaults to COLAB_MCP_MLX_PYTHON or the server's own "
+             "interpreter.",
+        action="store",
+        default=os.environ.get("COLAB_MCP_MLX_PYTHON", sys.executable),
+    )
     return parser.parse_args(v)
 
 
@@ -146,6 +157,8 @@ async def main_async():
         + get_drive_tools(session_manager)
         + get_secret_tools(session_manager)
         + get_inspect_tools(session_manager)
+        + get_roundtrip_tools(session_manager)
+        + get_local_mlx_tools(args.mlx_python)
     )
     mcp.add_middleware(SessionProxyMiddleware(session_manager, mcp))
     mcp.add_middleware(ToolInjectionMiddleware(tools=all_tools))
