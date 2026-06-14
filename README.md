@@ -10,6 +10,14 @@ Extended version of Google's [colab-mcp](https://github.com/googlecolab/colab-mc
 - Headless/Playwright browser backend (optional, via `[headless]` extra)
 - Expanded tool set covering execution, files, Drive, secrets, inspection, and notebook cells
 
+## Installation
+
+```bash
+git clone https://github.com/robworks-code/colab-mcp-extended.git
+cd colab-mcp-extended
+pip install -e .            # or: pip install -e '.[headless]' for Playwright support
+```
+
 ## Tools
 
 ### Connection
