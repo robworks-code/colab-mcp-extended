@@ -103,3 +103,7 @@ def test_download_parses_last_json_line(monkeypatch):
     fn = _tool(lm.get_local_mlx_tools("/PY"), "download_from_hf").fn
     out = json.loads(asyncio.run(fn(repo_id="org/repo", local_dir="/d")))
     assert out["path"] == "/d" and out["files"] == ["a"]
+
+
+def test_parse_last_json_falls_back_to_raw():
+    assert lm._parse_last_json("just noise\nmore noise") == {"raw": "just noise\nmore noise"}

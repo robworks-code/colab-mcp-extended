@@ -2,6 +2,7 @@
 """Local-host MLX round-trip tools (run where the server runs, not in Colab)."""
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import shutil
@@ -91,7 +92,8 @@ def get_local_mlx_tools(mlx_python: str) -> list[Tool]:
         Returns:
             JSON {path, files[]} or {error}.
         """
-        proc = subprocess.run(
+        proc = await asyncio.to_thread(
+            subprocess.run,
             [mlx_python, "-c", _download_script(repo_id, local_dir)],
             capture_output=True, text=True,
         )
@@ -106,15 +108,16 @@ def get_local_mlx_tools(mlx_python: str) -> list[Tool]:
 
         When `source` is a local directory and `normalize` is set, runs the
         tokenizer-config normalization first. When `clear_existing` is set and
-        `mlx_path` exists, clears it (mlx_lm.convert refuses to write into an
-        existing dir). On the known Mistral sentencepiece failure, returns a hint.
+        `mlx_path` exists, it is moved aside before conversion and restored if the
+        conversion fails (mlx_lm.convert refuses to write into an existing dir). If
+        stderr mentions sentencepiece, returns an install hint.
 
         Args:
             source: Local model dir or HF repo id (passed as --hf-path).
             mlx_path: Output directory for the MLX model.
             quantize: If true, pass -q with --q-bits.
             q_bits: Quantization bit width (default 4).
-            clear_existing: Remove mlx_path before converting.
+            clear_existing: Move mlx_path aside before converting (restored on failure).
             normalize: Normalize tokenizer_config when source is a local dir.
 
         Returns:
@@ -123,14 +126,23 @@ def get_local_mlx_tools(mlx_python: str) -> list[Tool]:
         norm = None
         if normalize and os.path.isdir(source):
             norm = _normalize_tokenizer_config(source)
+        backup = None
         if clear_existing and os.path.isdir(mlx_path):
-            shutil.rmtree(mlx_path)
+            backup = mlx_path + ".bak"
+            if os.path.isdir(backup):
+                shutil.rmtree(backup)
+            os.rename(mlx_path, backup)
         argv = [mlx_python, "-m", "mlx_lm.convert",
                 "--hf-path", source, "--mlx-path", mlx_path]
         if quantize:
             argv += ["-q", "--q-bits", str(q_bits)]
-        proc = subprocess.run(argv, capture_output=True, text=True)
+        proc = await asyncio.to_thread(subprocess.run, argv,
+                                       capture_output=True, text=True)
         if proc.returncode != 0:
+            if backup is not None:
+                if os.path.isdir(mlx_path):
+                    shutil.rmtree(mlx_path)
+                os.rename(backup, mlx_path)  # restore the prior output
             err: dict[str, Any] = {
                 "error": proc.stderr.strip() or "convert failed", "argv": argv,
             }
@@ -139,6 +151,8 @@ def get_local_mlx_tools(mlx_python: str) -> list[Tool]:
             if norm is not None:
                 err["normalized"] = norm
             return json.dumps(err)
+        if backup is not None:
+            shutil.rmtree(backup)
         result: dict[str, Any] = {"mlx_path": mlx_path, "status": "ok"}
         if norm is not None:
             result["normalized"] = norm
