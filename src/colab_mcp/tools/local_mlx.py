@@ -22,7 +22,7 @@ def _normalize_tokenizer_config(path: str) -> dict[str, Any]:
     )
     if not os.path.isfile(cfg_path):
         return {"error": f"tokenizer_config.json not found at {cfg_path}"}
-    with open(cfg_path) as f:
+    with open(cfg_path, encoding="utf-8") as f:
         cfg = json.load(f)
     changed: list[str] = []
     if cfg.get("tokenizer_class") == "TokenizersBackend":
@@ -33,6 +33,6 @@ def _normalize_tokenizer_config(path: str) -> dict[str, Any]:
             del cfg[k]
             changed.append(k)
     if changed:
-        with open(cfg_path, "w") as f:
+        with open(cfg_path, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=2)
     return {"path": cfg_path, "changed": changed}

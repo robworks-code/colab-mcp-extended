@@ -18,7 +18,8 @@ def test_normalize_rewrites_backend_and_drops_keys(tmp_path):
     })
     res = _normalize_tokenizer_config(d)
     assert res["changed"] == ["tokenizer_class", "backend", "is_local", "from_slow"]
-    cfg = json.loads(open(os.path.join(d, "tokenizer_config.json")).read())
+    with open(os.path.join(d, "tokenizer_config.json"), encoding="utf-8") as f:
+        cfg = json.load(f)
     assert cfg["tokenizer_class"] == "PreTrainedTokenizerFast"
     assert "backend" not in cfg and "is_local" not in cfg and "from_slow" not in cfg
     assert cfg["keep"] == 1
