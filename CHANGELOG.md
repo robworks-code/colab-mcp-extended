@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-13
+
 ### Security
 
 - Bump `fastmcp` 2.14.5 -> 3.2.0, resolving three advisories in unused fastmcp
@@ -54,6 +56,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Multi-session architecture with headless browser support.
 - Initial fork of colab-mcp with `notebook_id` and `authuser` support.
 
-[Unreleased]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/robworks-code/colab-mcp-extended/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/robworks-code/colab-mcp-extended/releases/tag/v1.1.0
 [1.0.0]: https://github.com/robworks-code/colab-mcp-extended/commits/main
