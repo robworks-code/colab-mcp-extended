@@ -16,11 +16,11 @@ Extended version of Google's [colab-mcp](https://github.com/googlecolab/colab-mc
 ### As a Claude Code plugin (recommended)
 
 This repo doubles as the `colab` Claude Code plugin, published via the
-[robworks-claude-code-plugins](https://github.com/ringo380/robworks-claude-code-plugins)
+[robworks-claude-code-plugins](https://github.com/robworks-code/robworks-claude-code-plugins)
 marketplace:
 
 ```
-/plugin marketplace add ringo380/robworks-claude-code-plugins
+/plugin marketplace add robworks-code/robworks-claude-code-plugins
 /plugin install colab@robworks-claude-code-plugins
 ```
 
